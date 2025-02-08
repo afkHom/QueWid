@@ -88,23 +88,44 @@ class NotesApp:
                 self.text_area.insert(tk.END, content)
 
     def add_event(self):
-        event_name = simpledialog.askstring("Add Event", "Enter event name:")
-        event_date = simpledialog.askstring("Add Event", "Enter event date (YYYY-MM-DD):")
-        try:
-            datetime.strptime(event_date, "%Y-%m-%d")
-        except ValueError:
-            messagebox.showerror("Invalid Date", "Please enter a valid date in YYYY-MM-DD format.")
-            return
+        add_event_window = tk.Toplevel(self.root)
+        add_event_window.title("Add Event")
 
-        folder_name = os.path.join(os.path.expanduser("~"), "QueWid", "Events")
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
+        tk.Label(add_event_window, text="Event Name:").pack(pady=5)
+        event_name_entry = tk.Entry(add_event_window)
+        event_name_entry.pack(pady=5)
 
-        event_file = os.path.join(folder_name, "events.txt")
-        with open(event_file, "a", encoding="utf-8") as file:
-            file.write(f"{event_date} - {event_name}\n")
+        tk.Label(add_event_window, text="Event Date (YYYY-MM-DD):").pack(pady=5)
+        event_date_entry = tk.Entry(add_event_window)
+        event_date_entry.pack(pady=5)
 
-        messagebox.showinfo("Event Saved", "Event has been saved successfully!")
+        tk.Label(add_event_window, text="Event Description:").pack(pady=5)
+        event_description_entry = tk.Entry(add_event_window)
+        event_description_entry.pack(pady=5)
+
+        def save_event():
+            event_name = event_name_entry.get()
+            event_date = event_date_entry.get()
+            event_description = event_description_entry.get()
+            try:
+                datetime.strptime(event_date, "%Y-%m-%d")
+            except ValueError:
+                messagebox.showerror("Invalid Date", "Please enter a valid date in YYYY-MM-DD format.")
+                return
+
+            folder_name = os.path.join(os.path.expanduser("~"), "QueWid", "Events")
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
+
+            event_file = os.path.join(folder_name, "events.txt")
+            with open(event_file, "a", encoding="utf-8") as file:
+                file.write(f"{event_date} - {event_name} - {event_description}\n")
+
+            messagebox.showinfo("Event Saved", "Event has been saved successfully!")
+            add_event_window.destroy()
+
+        save_button = tk.Button(add_event_window, text="Save", command=save_event)
+        save_button.pack(pady=10)
 
     def view_events(self):
         folder_name = os.path.join(os.path.expanduser("~"), "QueWid", "Events")
@@ -123,8 +144,11 @@ class NotesApp:
         events_window.title("View Events")
 
         for event in events:
-            event_label = tk.Label(events_window, text=event.strip(), anchor="w", justify="left", padx=10, pady=5, relief="groove")
+            event_parts = event.strip().split(" - ")
+            event_label = tk.Label(events_window, text=f"{event_parts[1]} - {event_parts[2]}", anchor="w", justify="left", padx=10, pady=5, relief="groove")
             event_label.pack(fill="x", padx=10, pady=5)
+            date_label = tk.Label(events_window, text=event_parts[0], anchor="e", justify="right", padx=10, pady=5, relief="groove")
+            date_label.pack(fill="x", padx=10, pady=5)
 
     def delete_event(self):
         folder_name = os.path.join(os.path.expanduser("~"), "QueWid", "Events")
@@ -144,7 +168,8 @@ class NotesApp:
         listbox.pack(fill="both", expand=True, padx=10, pady=10)
 
         for event in events:
-            listbox.insert(tk.END, event.strip())
+            event_parts = event.strip().split(" - ")
+            listbox.insert(tk.END, f"{event_parts[1]} - {event_parts[2]}")
 
         def delete_selected_event():
             selected_index = listbox.curselection()
@@ -153,7 +178,10 @@ class NotesApp:
                 return
 
             selected_event = listbox.get(selected_index)
-            events.remove(selected_event + "\n")
+            for event in events:
+                if selected_event in event:
+                    events.remove(event)
+                    break
 
             with open(event_file, "w", encoding="utf-8") as file:
                 file.writelines(events)
